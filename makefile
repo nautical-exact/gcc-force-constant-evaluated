@@ -31,12 +31,5 @@ GCC_PLUGINS_DIR = $(shell $(TARGET_GCC) -print-file-name=plugin)
 CXXFLAGS += -I"$(GCC_PLUGINS_DIR)/include" -fPIC -fno-rtti -std=c++11
 CXXFLAGS += -Wall -Wextra -Werror
 
-ROOT_DIR := $(shell dirname "$(realpath "$(firstword $(MAKEFILE_LIST))")")
-
-.PHONY: test
-
 $(PLUGIN_NAME).so: plugin.cpp
 	$(HOST_GCC) -shared $(CXXFLAGS) $^ -o $@
-
-test: $(PLUGIN_NAME).so
-	$(TARGET_GCC) test/*.cpp -fplugin="$(ROOT_DIR)/$(PLUGIN_NAME).so" -o test.out
