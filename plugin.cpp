@@ -12,8 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-// This line does not imply any licensing. This code is for testing purposes only and will not be
-// distributed or used to compile anything that is distributed, until licensing is figured out.
+// Licensed under 0-Clause BSD
 int plugin_is_GPL_compatible;
 
 #define PLUGIN_NAME "gcc-force-constant-evaluated"
