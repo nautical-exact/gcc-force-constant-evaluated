@@ -1,3 +1,5 @@
+https://github.com/nautical-exact/gcc-force-constant-evaluated
+
 GCC plugin to force functions to be evaluated at compile time. Tested with
 GCC 9.4.
 
