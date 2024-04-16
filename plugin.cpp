@@ -54,12 +54,37 @@ static bool is_call_to_force_consteval_fn(tree *t) {
         return false;
     }
 
-    tree fnDecl = TREE_OPERAND(CALL_EXPR_FN(*t), 0);
+    tree fn = CALL_EXPR_FN(*t);
+    if (fn == NULL_TREE || TREE_OPERAND_LENGTH(fn) < 1)
+    {
+        return false;
+    }
 
-    tree attrs = lookup_attribute (ATTRIBUTE_NAME, DECL_ATTRIBUTES (fnDecl))
-        ?: lookup_attribute (ATTRIBUTE_NAME, TYPE_ATTRIBUTES (TREE_TYPE (fnDecl)));
+    tree fnDecl = TREE_OPERAND(fn, 0);
+    if (fnDecl == NULL_TREE || TREE_CODE(fnDecl) != FUNCTION_DECL)
+    {
+        return false;
+    }
     
-    return attrs != NULL_TREE;
+    tree declAttrs = DECL_ATTRIBUTES (fnDecl);
+    if (lookup_attribute(ATTRIBUTE_NAME, declAttrs) != NULL_TREE)
+    {
+        return true;
+    }
+
+    tree type = TREE_TYPE (fnDecl);
+    if (type == NULL_TREE)
+    {
+        return false;
+    }
+
+    tree typeAttrs = TYPE_ATTRIBUTES (type);
+    if (lookup_attribute (ATTRIBUTE_NAME, typeAttrs) != NULL_TREE)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 void handle_pre_generic (void *event_data, void * /*data*/)
