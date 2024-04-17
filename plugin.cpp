@@ -25,9 +25,21 @@ static struct plugin_info my_plugin_info =
 };
 
 static tree handle_force_consteval_attribute(
-    tree * /*node*/, tree /*name*/, tree /*args*/, int /*flags*/, bool * /*no_add_attrs*/)
+    tree * node, tree name, tree /*args*/, int /*flags*/, bool * no_add_attrs)
 {
-    // No special handling needed
+    if (TREE_CODE (*node) == FUNCTION_DECL)
+    {
+        if (!DECL_DECLARED_CONSTEXPR_P(*node))
+        {
+            warning (OPT_Wattributes, "%qE attribute on a function not declared constexpr", name);
+        }
+    }
+    else
+    {
+      warning (OPT_Wattributes, "%qE attribute ignored: Not on a function declaration", name);
+      *no_add_attrs = true;
+    }
+
     return NULL_TREE;
 }
 
@@ -35,9 +47,9 @@ static attribute_spec force_consteval_attr {
     .name = ATTRIBUTE_NAME,
     .min_length = 0,
     .max_length = 0,
-    .decl_required = false,
-    .type_required = true,
-    .function_type_required = true,
+    .decl_required = true,
+    .type_required = false,
+    .function_type_required = false,
     .affects_type_identity = false,
     .handler = handle_force_consteval_attribute,
     .exclude = nullptr
@@ -49,39 +61,23 @@ static void callback_register_attributes (void * /*event_data*/, void * /*data*/
     register_attribute (&force_consteval_attr);
 }
 
-static bool is_call_to_force_consteval_fn(tree *t) {
-    if (t == nullptr || TREE_CODE(*t) != CALL_EXPR) {
-        return false;
-    }
+static bool is_call_to_force_consteval_fn(tree t) {
+    if (tree fnDecl = cp_get_callee_fndecl(t))
+    {
+        tree declAttrs = DECL_ATTRIBUTES(fnDecl);
+        if (lookup_attribute(ATTRIBUTE_NAME, declAttrs))
+        {
+            return true;
+        }
 
-    tree fn = CALL_EXPR_FN(*t);
-    if (fn == NULL_TREE || TREE_OPERAND_LENGTH(fn) < 1)
-    {
-        return false;
-    }
-
-    tree fnDecl = TREE_OPERAND(fn, 0);
-    if (fnDecl == NULL_TREE || TREE_CODE(fnDecl) != FUNCTION_DECL)
-    {
-        return false;
-    }
-    
-    tree declAttrs = DECL_ATTRIBUTES (fnDecl);
-    if (lookup_attribute(ATTRIBUTE_NAME, declAttrs) != NULL_TREE)
-    {
-        return true;
-    }
-
-    tree type = TREE_TYPE (fnDecl);
-    if (type == NULL_TREE)
-    {
-        return false;
-    }
-
-    tree typeAttrs = TYPE_ATTRIBUTES (type);
-    if (lookup_attribute (ATTRIBUTE_NAME, typeAttrs) != NULL_TREE)
-    {
-        return true;
+        if (tree declType = TREE_TYPE(fnDecl))
+        {
+            tree typeAttrs = TYPE_ATTRIBUTES(declType);
+            if (lookup_attribute(ATTRIBUTE_NAME, typeAttrs))
+            {
+                return true;
+            }
+        }
     }
 
     return false;
@@ -95,7 +91,7 @@ void handle_pre_generic (void *event_data, void * /*data*/)
 
     auto walkFunc = [](tree * t, int *, void *) -> tree
     {
-        if (is_call_to_force_consteval_fn(t))
+        if (t != nullptr && is_call_to_force_consteval_fn(*t))
         {
             *t = cxx_constant_value(*t);
         }
